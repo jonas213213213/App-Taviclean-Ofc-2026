@@ -25,55 +25,70 @@ include 'inc/header.php';
 <!-- FullCalendar Deps -->
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
 
-<header class="bg-white px-5 pt-10 pb-4 border-b border-gray-100 flex flex-col gap-4 sticky top-0 z-30">
+<header class="bg-white px-5 pt-10 pb-4 border-b border-slate-100 flex flex-col gap-4 sticky top-0 z-30 transition-all shadow-sm">
     <div class="flex items-center justify-between">
-        <button onclick="toggleMenu()" class="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
+        <button onclick="toggleMenu()" class="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-full">
             <i data-lucide="menu"></i>
         </button>
-        <h1 class="text-lg font-bold text-gray-800">Agenda Inteligente</h1>
-        <a href="agendar.php" class="p-2 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-100">
+        <div class="flex flex-col items-center">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TaviClean</span>
+            <h1 class="text-lg font-bold text-slate-800 tracking-tight">Agenda Inteligente</h1>
+        </div>
+        <a href="agendar.php" class="p-2 bg-primary text-white rounded-xl shadow-lg shadow-primary/20">
             <i data-lucide="plus" size="20"></i>
         </a>
     </div>
 
-    <!-- Toggle View -->
-    <div class="flex bg-gray-100 p-1 rounded-2xl">
-        <button onclick="setView('calendar')" id="btn-calendar" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-white shadow-sm">Calendário</button>
-        <button onclick="setView('list')" id="btn-list" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all text-gray-400">Lista</button>
+    <!-- Toggle View Tabs -->
+    <div class="flex bg-slate-100 p-1 rounded-2xl">
+        <button onclick="setView('calendar')" id="btn-calendar" class="flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-xl transition-all bg-white shadow-sm text-primary">Calendário</button>
+        <button onclick="setView('list')" id="btn-list" class="flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-xl transition-all text-slate-400">Lista Próximos</button>
     </div>
 </header>
 
-<main class="flex-1 overflow-y-auto p-5 no-scrollbar pb-24">
+<main class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-24">
     <!-- View Calendário -->
-    <div id="view-calendar" class="bg-white rounded-3xl p-2 border border-gray-50">
-        <div id="calendar" class="h-[600px]"></div>
+    <div id="view-calendar" class="space-y-4 animate-fade-in">
+        <div class="bg-white rounded-[32px] p-4 shadow-sm border border-slate-100 overflow-hidden">
+            <div id="calendar" class="text-xs"></div>
+        </div>
     </div>
 
-    <!-- View Lista (Escondida por padrão) -->
-    <div id="view-list" class="hidden space-y-3">
+    <!-- View Lista -->
+    <div id="view-list" class="hidden space-y-3 animate-fade-in">
         <?php 
         $result->data_seek(0);
-        while($row = $result->fetch_assoc()): 
+        if ($result->num_rows > 0):
+            while($row = $result->fetch_assoc()): 
         ?>
-            <a href="detalhes_agendamento.php?id=<?php echo $row['id']; ?>" class="block bg-white border border-gray-100 p-4 rounded-3xl space-y-3 relative overflow-hidden group hover:shadow-md transition-all">
-                <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                            <img src="https://picsum.photos/seed/<?php echo urlencode($row['customerName']); ?>/100/100" class="w-full h-full object-cover">
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-sm text-gray-800"><?php echo htmlspecialchars($row['customerName']); ?></h4>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider"><?php echo $row['serviceType']; ?></p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-bold uppercase tracking-tighter">
+            <a href="detalhes_agendamento.php?id=<?php echo $row['id']; ?>" class="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100 flex items-center gap-4 hover:border-primary/30 transition-all cursor-pointer">
+                <div class="w-12 h-12 rounded-[20px] bg-slate-50 flex items-center justify-center overflow-hidden border border-slate-100">
+                    <img src="https://picsum.photos/seed/<?php echo urlencode($row['customerName']); ?>/100/100" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-extrabold text-sm text-slate-800 tracking-tight"><?php echo htmlspecialchars($row['customerName']); ?></h4>
+                    <div class="flex items-center gap-2">
+                        <p class="text-[10px] font-bold text-primary uppercase"><?php echo date('d/m', strtotime($row['date'])); ?></p>
+                        <span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[8px] font-bold uppercase">
                             <?php echo $row['status']; ?>
                         </span>
                     </div>
                 </div>
+                <div class="text-right">
+                    <p class="text-xs font-black text-slate-800"><?php echo substr($row['startTime'], 0, 5); ?></p>
+                </div>
             </a>
-        <?php endwhile; ?>
+        <?php 
+            endwhile; 
+        else:
+        ?>
+            <div class="bg-white p-12 rounded-[40px] border border-slate-100 text-center space-y-3 shadow-sm">
+                <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto text-slate-200">
+                    <i data-lucide="calendar-x" size="28"></i>
+                </div>
+                <p class="text-xs font-bold text-slate-400">Sem agendamentos futuros.</p>
+            </div>
+        <?php endif; ?>
     </div>
 </main>
 
@@ -141,25 +156,5 @@ include 'inc/header.php';
     .fc-daygrid-day-number { font-size: 0.8rem; font-weight: 600; color: #64748b; }
     .fc-event { border-radius: 8px !important; padding: 2px 4px !important; border: none !important; cursor: pointer; }
 </style>
-
-<!-- Bottom Nav -->
-<nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-md border-t border-gray-100 h-20 flex items-center justify-around px-2 z-40">
-    <a href="index.php" class="flex flex-col items-center gap-1 text-gray-400">
-        <i data-lucide="layout-dashboard"></i>
-        <span class="text-[10px]">Painel</span>
-    </a>
-    <a href="agendamentos.php" class="flex flex-col items-center gap-1 text-blue-600 font-bold">
-        <i data-lucide="calendar"></i>
-        <span class="text-[10px]">Agenda</span>
-    </a>
-    <a href="clientes.php" class="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500">
-        <i data-lucide="user"></i>
-        <span class="text-[10px]">Clientes</span>
-    </a>
-    <a href="equipa.php" class="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500">
-        <i data-lucide="layout-grid"></i>
-        <span class="text-[10px]">Mais</span>
-    </a>
-</nav>
 
 <?php include 'inc/footer.php'; ?>

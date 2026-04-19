@@ -33,43 +33,61 @@ $team = $conn->query("SELECT * FROM team ORDER BY name ASC");
 include 'inc/header.php';
 ?>
 
-<header class="bg-white px-5 pt-10 pb-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-30">
-    <button onclick="toggleMenu()" class="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
+<header class="bg-white h-20 flex items-end justify-between px-5 pb-4 border-b border-slate-100 z-30 shrink-0 sticky top-0">
+    <button onclick="toggleMenu()" class="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
         <i data-lucide="menu"></i>
     </button>
-    <h1 class="text-lg font-bold text-gray-800">Equipa & Mais</h1>
+    <div class="flex flex-col items-center">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TaviClean</span>
+        <h1 class="text-lg font-bold text-slate-800 tracking-tight">Equipa & Logs</h1>
+    </div>
     <div class="w-10"></div>
 </header>
 
 <main class="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-24">
-    <!-- Log System -->
+    <!-- Center of Operations / Logs -->
     <section class="space-y-4">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Sistema de Logs</h3>
-        <div class="bg-gray-900 rounded-[32px] p-6 text-white space-y-4 shadow-2xl">
-            <div class="flex items-center gap-3">
-                <i data-lucide="terminal" class="text-blue-400"></i>
-                <span class="font-mono text-xs font-bold uppercase tracking-widest text-blue-400">TaviClean Debug Console</span>
+        <div class="flex items-center gap-2">
+            <i data-lucide="cpu" size="14" class="text-primary"></i>
+            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Centro de Operações</h3>
+        </div>
+        
+        <div class="bg-slate-900 rounded-[32px] p-6 text-white space-y-4 shadow-2xl border border-slate-800 shadow-slate-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">Sistema Online</span>
+                </div>
+                <i data-lucide="terminal" size="16" class="text-slate-500"></i>
             </div>
             
-            <div class="h-40 overflow-y-auto font-mono text-[10px] space-y-1 no-scrollbar bg-black/30 p-4 rounded-2xl border border-white/5">
+            <div class="h-44 overflow-y-auto font-mono text-[10px] space-y-2 no-scrollbar bg-black/40 p-4 rounded-2xl border border-white/5 shadow-inner">
                 <?php
                 $log_file = __DIR__ . '/debug.log';
                 if (file_exists($log_file)) {
                     $logs = array_reverse(file($log_file));
-                    foreach (array_slice($logs, 0, 20) as $line) {
-                        echo "<div>" . htmlspecialchars($line) . "</div>";
+                    foreach (array_slice($logs, 0, 15) as $line) {
+                        $parts = explode(']', $line, 2);
+                        if (count($parts) > 1) {
+                            echo '<div class="flex gap-2">';
+                            echo '<span class="text-slate-600 shrink-0">' . htmlspecialchars(trim($parts[0], '[')) . '</span>';
+                            echo '<span class="text-slate-300">' . htmlspecialchars(ltrim($parts[1])) . '</span>';
+                            echo '</div>';
+                        } else {
+                            echo '<div class="text-slate-400">' . htmlspecialchars($line) . '</div>';
+                        }
                     }
                 } else {
-                    echo "<div class='text-gray-600'>Nenhum log disponível...</div>";
+                    echo "<div class='text-slate-600 flex items-center gap-2 italic'><i data-lucide='info' size='12'></i> A aguardar registos...</div>";
                 }
                 ?>
             </div>
 
             <form method="POST" class="flex gap-2">
-                <input type="text" name="log_message" placeholder="Escreva um log manual..." 
-                    class="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 text-white">
-                <button type="submit" name="force_log" class="p-3 bg-blue-500 rounded-xl hover:bg-blue-600 transition-all active:scale-95">
-                    <i data-lucide="play" size="18"></i>
+                <input type="text" name="log_message" placeholder="Comando manual..." 
+                    class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 text-white placeholder:text-slate-600">
+                <button type="submit" name="force_log" class="p-3 bg-primary rounded-xl hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20">
+                    <i data-lucide="send" size="18"></i>
                 </button>
             </form>
         </div>
@@ -77,58 +95,46 @@ include 'inc/header.php';
 
     <!-- Team Section -->
     <section class="space-y-4">
-        <div class="flex justify-between items-center">
-            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">A Minha Equipa</h3>
-            <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="text-blue-500 font-bold text-xs flex items-center gap-1 bg-blue-50 px-3 py-2 rounded-xl">
-                <i data-lucide="plus" size="14"></i> Adicionar
+        <div class="flex justify-between items-center px-2">
+            <div class="flex items-center gap-2">
+                <i data-lucide="users" size="14" class="text-primary"></i>
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">Gestão de Pessoal</h3>
+            </div>
+            <button onclick="document.getElementById('add-modal').classList.remove('hidden')" class="text-primary font-bold text-[10px] flex items-center gap-1 bg-primary/10 px-3 py-2 rounded-xl group hover:bg-primary hover:text-white transition-all">
+                <i data-lucide="plus-circle" size="14"></i> NOVO MEMBRO
             </button>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
             <?php while($m = $team->fetch_assoc()): ?>
-                <div class="bg-white border border-gray-100 p-4 rounded-3xl flex flex-col items-center text-center space-y-3">
-                    <div class="w-16 h-16 rounded-2xl bg-gray-100 overflow-hidden shadow-sm ring-4 ring-gray-50">
-                        <?php 
-                            $photo_src = $m['photo'];
-                            if (strpos($photo_src, 'http') === false) {
-                                $photo_src = $photo_src; // Local path
-                            }
-                        ?>
-                        <img src="<?php echo $photo_src; ?>" class="w-full h-full object-cover">
+                <div class="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100 flex flex-col items-center text-center space-y-3 group hover:border-primary/30 transition-all">
+                    <div class="relative">
+                        <div class="w-16 h-16 rounded-[24px] bg-slate-50 overflow-hidden shadow-sm border-2 border-white group-hover:scale-110 transition-transform">
+                            <img src="<?php echo htmlspecialchars($m['photo']); ?>" class="w-full h-full object-cover">
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
                     <div>
-                        <h4 class="font-bold text-sm"><?php echo htmlspecialchars($m['name']); ?></h4>
-                        <p class="text-[10px] text-gray-400 font-medium uppercase tracking-tighter"><?php echo htmlspecialchars($m['role']); ?></p>
+                        <h4 class="font-extrabold text-sm text-slate-800"><?php echo htmlspecialchars($m['name']); ?></h4>
+                        <p class="text-[9px] text-primary font-bold uppercase tracking-widest mt-1"><?php echo htmlspecialchars($m['role']); ?></p>
                     </div>
                 </div>
             <?php endwhile; ?>
         </div>
     </section>
 
-    <!-- App Actions -->
-    <section class="space-y-3">
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Configurações</h3>
-        <div class="bg-white border border-gray-100 rounded-3xl overflow-hidden divide-y divide-gray-50">
-            <a href="ganhos.php" class="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors">
-                <div class="flex items-center gap-4 font-bold">
-                    <div class="p-3 bg-blue-100 text-blue-500 rounded-2xl">
-                        <i data-lucide="wallet" size="20"></i>
-                    </div>
-                    Meus Ganhos
+    <!-- Extra Links -->
+    <div class="space-y-3 px-2 pt-4">
+        <a href="ganhos.php" class="bg-white p-4 rounded-[24px] border border-slate-100 flex items-center justify-between group">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                    <i data-lucide="bar-chart-3" size="18"></i>
                 </div>
-                <i data-lucide="chevron-right" size="20"></i>
-            </a>
-            <a href="logout.php" class="flex items-center justify-between p-5 hover:bg-red-50 text-red-500 transition-colors">
-                <div class="flex items-center gap-4 font-bold">
-                    <div class="p-3 bg-red-100 rounded-2xl">
-                        <i data-lucide="pause" size="20"></i>
-                    </div>
-                    Terminar Sessão
-                </div>
-                <i data-lucide="chevron-right" size="20"></i>
-            </a>
-        </div>
-    </section>
+                <span class="font-bold text-sm text-slate-800">Relatório de Rendimentos</span>
+            </div>
+            <i data-lucide="chevron-right" size="16" class="text-slate-300"></i>
+        </a>
+    </div>
 </main>
 
 <!-- Add Member Modal -->
@@ -165,25 +171,5 @@ include 'inc/header.php';
 }
 .animate-slide-up { animation: slide-up 0.3s ease-out; }
 </style>
-
-<!-- Bottom Nav -->
-<nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-md border-t border-gray-100 h-20 flex items-center justify-around px-2 z-40">
-    <a href="index.php" class="flex flex-col items-center gap-1 text-gray-400">
-        <i data-lucide="layout-dashboard"></i>
-        <span class="text-[10px]">Painel</span>
-    </a>
-    <a href="agendamentos.php" class="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500">
-        <i data-lucide="calendar"></i>
-        <span class="text-[10px]">Agenda</span>
-    </a>
-    <a href="clientes.php" class="flex flex-col items-center gap-1 text-gray-400 hover:text-blue-500">
-        <i data-lucide="user"></i>
-        <span class="text-[10px]">Clientes</span>
-    </a>
-    <a href="equipa.php" class="flex flex-col items-center gap-1 text-blue-600 font-bold">
-        <i data-lucide="layout-grid"></i>
-        <span class="text-[10px]">Mais</span>
-    </a>
-</nav>
 
 <?php include 'inc/footer.php'; ?>
