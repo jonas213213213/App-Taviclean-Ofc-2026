@@ -14,9 +14,30 @@ function get_db_connection() {
     return $conn;
 }
 
+// Sistema de Log
+function write_log($message, $type = 'info') {
+    $conn = get_db_connection();
+    $timestamp = date('Y-m-d H:i:s');
+    // Guardar em um arquivo também para redundância
+    $log_entry = "[$timestamp] [$type] $message" . PHP_EOL;
+    file_put_contents(__DIR__ . '/debug.log', $log_entry, FILE_APPEND);
+    
+    // Inserir na tabela de notificações para feedback UI
+    $stmt = $conn->prepare("INSERT INTO notifications (title, message, unread) VALUES (?, ?, 1)");
+    $title = strtoupper($type) . ": Log do Sistema";
+    $stmt->bind_param("ss", $title, $message);
+    $stmt->execute();
+}
+
 // Iniciar sessão
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Helper para Mensagens Flash (Notificações)
+function set_flash_message($message, $type = 'success') {
+    $_SESSION['flash_message'] = $message;
+    $_SESSION['flash_type'] = $type;
 }
 
 // Helper para proteção de rotas

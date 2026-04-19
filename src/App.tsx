@@ -79,6 +79,18 @@ interface Notification {
   unread: boolean;
 }
 
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error';
+}
+
+interface LogEntry {
+  timestamp: string;
+  message: string;
+  type: string;
+}
+
 interface Customer {
   id: string;
   name: string;
@@ -226,6 +238,25 @@ export default function App() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const addLog = (message: string, type: string = 'info') => {
+    const entry = {
+      timestamp: new Date().toLocaleTimeString(),
+      message,
+      type
+    };
+    setLogs(prev => [entry, ...prev].slice(0, 50));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -547,15 +578,102 @@ export default function App() {
 
   if (!isLoggedIn) {
     return showRegister ? (
-      <RegisterView onRegister={() => setIsLoggedIn(true)} onBackToLogin={() => setShowRegister(false)} />
+      <RegisterView onRegister={() => { setIsLoggedIn(true); showToast('Bem-vindo ao TaviClean! ✨'); }} onBackToLogin={() => setShowRegister(false)} />
     ) : (
-      <LoginView onLogin={() => setIsLoggedIn(true)} onGoToRegister={() => setShowRegister(false)} />
+      <LoginView onLogin={() => { setIsLoggedIn(true); showToast('Bem-vindo de volta! ✨'); addLog('Login efetuado com sucesso', 'auth'); }} onGoToRegister={() => setShowRegister(true)} />
     );
   }
 
   return (
     <div className="min-h-screen bg-bg-app font-sans text-text-main flex flex-col max-w-md mx-auto shadow-2xl relative overflow-hidden border-x border-gray-200">
       
+      {/* Toast Notifications */}
+      <div className="fixed top-5 right-5 z-[100] space-y-2 pointer-events-none max-w-[280px]">
+        {toasts.map(toast => (
+          <motion.div
+            key={toast.id}
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 100, opacity: 0 }}
+            className={`p-4 rounded-2xl shadow-xl flex items-center gap-3 border pointer-events-auto bg-white ${
+              toast.type === 'success' ? 'border-green-100 text-green-700' : 'border-red-100 text-red-700'
+            }`}
+          >
+            {toast.type === 'success' ? <Check size={18} /> : <AlertCircle size={18} />}
+            <span className="text-[10px] font-bold">{toast.message}</span>
+            <button onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} className="ml-auto opacity-50">
+              <X size={14} />
+            </button>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Sidebar Overlay */}
+      <AnimatePresence>
+        {isOperationCenterOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsOperationCenterOpen(false)}
+            className="absolute inset-0 bg-black/50 z-[80]"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Left Sidebar Menu */}
+      <AnimatePresence>
+        {isOperationCenterOpen && (
+          <motion.aside
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="absolute left-0 top-0 bottom-0 w-72 bg-white z-[90] shadow-2xl p-6 flex flex-col"
+          >
+            <div className="flex items-center justify-between mb-10">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                  <Sparkles size={18} fill="white" />
+                </div>
+                <span className="font-bold text-lg text-gray-800 tracking-tight">TaviClean</span>
+              </div>
+              <button onClick={() => setIsOperationCenterOpen(false)} className="p-2 text-gray-400 hover:bg-gray-50 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+
+            <nav className="flex-1 space-y-2">
+              {[
+                { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} /> },
+                { id: 'schedule', label: 'Agenda', icon: <CalendarIcon size={20} /> },
+                { id: 'history', label: 'Histórico', icon: <History size={20} /> },
+                { id: 'notifications', label: 'Avisos', icon: <Bell size={20} /> },
+                { id: 'more', label: 'Equipa', icon: <User size={20} /> },
+              ].map(item => (
+                <button 
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id as any); setIsOperationCenterOpen(false); }}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${
+                    activeTab === item.id ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {item.icon}
+                  <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            <div className="pt-6 border-t border-gray-100">
+              <button onClick={() => setIsLoggedIn(false)} className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-bold text-sm">
+                <Play className="rotate-180" size={20} />
+                Sair
+              </button>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
       {/* Fixed Global Header */}
       {!selectedJob && (
         <header className="bg-white h-20 flex items-end justify-between px-5 pb-4 border-b border-[#F5F7FA] z-30 shrink-0">
@@ -629,6 +747,7 @@ export default function App() {
                   onOperationCenter={() => setIsOperationCenterOpen(true)}
                   onAddMember={() => setIsAddMemberOpen(true)}
                   onRemoveMember={handleRemoveMember}
+                  logs={logs}
                 />
               )}
               {activeTab === 'notifications' && <NotificationsView notifications={notifications} setNotifications={setNotifications} />}
@@ -1029,10 +1148,10 @@ export default function App() {
                   Cancelar
                 </button>
                 <button 
-                  onClick={handleCreateJob}
-                  className="flex-1 py-4 bg-primary rounded-2xl text-sm font-bold text-white uppercase tracking-widest shadow-fab"
+                  onClick={() => { handleCreateJob(); showToast(editingJobId ? 'Agendamento atualizado!' : 'Serviço agendado com sucesso!'); addLog(`Novo agendamento para ${newJob.name}`, 'info'); }}
+                  className="flex-1 py-4 bg-blue-600 rounded-2xl text-sm font-bold text-white uppercase tracking-widest shadow-xl shadow-blue-100"
                 >
-                  {editingJobId ? 'Atualizar' : 'Guardar agendamento'}
+                  {editingJobId ? 'Atualizar' : 'Agendar Serviço'}
                 </button>
               </div>
             </motion.div>
@@ -2212,13 +2331,14 @@ function ScheduleView({ selectedDate, onDateChange, appointments, onJobClick }: 
   );
 }
 
-function MoreView({ profile, team, onLogout, onOperationCenter, onAddMember, onRemoveMember }: { 
+function MoreView({ profile, team, onLogout, onOperationCenter, onAddMember, onRemoveMember, logs }: { 
   profile: ProfileData; 
   team: TeamMember[];
   onLogout: () => void; 
   onOperationCenter: () => void;
   onAddMember: () => void;
   onRemoveMember: (id: string) => void;
+  logs: LogEntry[];
 }) {
   const [activeSubView, setActiveSubView] = useState<'main' | 'profile' | 'team' | 'settings'>('main');
 
@@ -2326,6 +2446,29 @@ function MoreView({ profile, team, onLogout, onOperationCenter, onAddMember, onR
               >
                 <Plus size={20} />
               </button>
+            </div>
+
+            {/* Log Console UI */}
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Sistema de Logs</h3>
+              <div className="bg-gray-900 rounded-[32px] p-6 text-white space-y-4 shadow-xl">
+                <div className="flex items-center gap-3">
+                  <Play size={14} className="text-blue-400" />
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-blue-400">TaviClean Debug Console</span>
+                </div>
+                <div className="h-40 overflow-y-auto font-mono text-[10px] space-y-2 no-scrollbar bg-black/30 p-4 rounded-2xl border border-white/5">
+                  {logs.length > 0 ? logs.map((log, i) => (
+                    <div key={i} className="flex gap-2">
+                      <span className="text-gray-500">[{log.timestamp}]</span>
+                      <span className={log.type === 'auth' ? 'text-green-400' : log.type === 'warning' ? 'text-yellow-400' : 'text-blue-200'}>
+                        {log.message}
+                      </span>
+                    </div>
+                  )) : (
+                    <div className="text-gray-600">Nenhum log disponível...</div>
+                  )}
+                </div>
+              </div>
             </div>
             
             <div className="space-y-4">
@@ -2497,42 +2640,54 @@ function ProfileView({ profile, onLogout, onOperationCenter }: { profile: Profil
 }
 
 function LoginView({ onLogin, onGoToRegister }: { onLogin: () => void; onGoToRegister: () => void }) {
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('');
+
   return (
     <div className="min-h-screen bg-white flex flex-col p-8 max-w-md mx-auto">
       <div className="flex-1 flex flex-col justify-center space-y-12">
         <div className="space-y-4 text-center">
-          <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-cyan-100">
+          <div className="w-20 h-20 bg-blue-500 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-blue-200">
             <Sparkles size={40} className="text-white" fill="white" />
           </div>
-          <h1 className="text-4xl font-extrabold text-primary tracking-tight">TaviClean</h1>
-          <p className="text-text-sub font-medium">Bem-vindo de volta!</p>
+          <h1 className="text-4xl font-extrabold text-gray-800 tracking-tight">TaviClean</h1>
+          <p className="text-gray-500 font-medium">Gestão de Limpezas Profissional</p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-text-sub uppercase tracking-widest ml-1">E-mail</label>
-            <input 
-              type="email" 
-              placeholder="seu@email.com"
-              className="w-full p-4 bg-bg-app rounded-2xl border border-transparent focus:border-primary focus:outline-none transition-all"
-            />
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Utilizador</label>
+            <div className="relative">
+              <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:border-blue-500 focus:outline-none transition-all"
+              />
+            </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-text-sub uppercase tracking-widest ml-1">Senha</label>
-            <input 
-              type="password" 
-              placeholder="••••••••"
-              className="w-full p-4 bg-bg-app rounded-2xl border border-transparent focus:border-primary focus:outline-none transition-all"
-            />
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Senha</label>
+            <div className="relative">
+              <X className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:border-blue-500 focus:outline-none transition-all"
+              />
+            </div>
           </div>
-          <button className="text-xs font-bold text-primary text-right w-full">Esqueceu a senha?</button>
         </div>
 
         <button 
           onClick={onLogin}
-          className="w-full py-5 bg-primary rounded-2xl text-white font-bold uppercase tracking-widest shadow-fab active:scale-95 transition-transform"
+          className="w-full py-5 bg-blue-600 rounded-2xl text-white font-bold uppercase tracking-widest shadow-xl shadow-blue-100 active:scale-95 transition-transform"
         >
-          Entrar
+          Entrar no Painel
         </button>
       </div>
 

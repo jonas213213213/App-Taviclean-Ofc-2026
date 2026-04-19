@@ -26,7 +26,7 @@ include 'inc/header.php';
 
 <!-- Home/Dashboard View -->
 <header class="bg-white h-20 flex items-end justify-between px-5 pb-4 border-b border-gray-100 shrink-0">
-    <button class="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
+    <button onclick="toggleMenu()" class="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
         <i data-lucide="menu"></i>
     </button>
     <div class="flex flex-col items-center">

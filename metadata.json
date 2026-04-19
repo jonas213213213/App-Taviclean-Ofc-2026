@@ -1,6 +1,6 @@
 {
-  "name": "TaviClean",
-  "description": "A professional cleaning service management app for scheduling and tracking appointments.",
+  "name": "TaviClean PHP & Admin",
+  "description": "Sistema completo de limpeza profissional com gestão de equipa e agenda inteligente (Versão PHP/MySQL).",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

@@ -4,6 +4,15 @@ require_once 'inc/upload_helper.php';
 check_auth();
 $conn = get_db_connection();
 
+// Forçar Log Manual
+if (isset($_POST['force_log'])) {
+    $msg = $_POST['log_message'] ?? 'Log manual forçado pelo administrador.';
+    write_log($msg, 'manual');
+    set_flash_message("Log registado com sucesso!");
+    header("Location: equipa.php");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_member'])) {
     $id = uniqid();
     $name = $_POST['name'];
@@ -25,14 +34,47 @@ include 'inc/header.php';
 ?>
 
 <header class="bg-white px-5 pt-10 pb-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-30">
-    <a href="index.php" class="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full">
-        <i data-lucide="arrow-left"></i>
-    </a>
+    <button onclick="toggleMenu()" class="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
+        <i data-lucide="menu"></i>
+    </button>
     <h1 class="text-lg font-bold text-gray-800">Equipa & Mais</h1>
     <div class="w-10"></div>
 </header>
 
 <main class="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-24">
+    <!-- Log System -->
+    <section class="space-y-4">
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Sistema de Logs</h3>
+        <div class="bg-gray-900 rounded-[32px] p-6 text-white space-y-4 shadow-2xl">
+            <div class="flex items-center gap-3">
+                <i data-lucide="terminal" class="text-blue-400"></i>
+                <span class="font-mono text-xs font-bold uppercase tracking-widest text-blue-400">TaviClean Debug Console</span>
+            </div>
+            
+            <div class="h-40 overflow-y-auto font-mono text-[10px] space-y-1 no-scrollbar bg-black/30 p-4 rounded-2xl border border-white/5">
+                <?php
+                $log_file = __DIR__ . '/debug.log';
+                if (file_exists($log_file)) {
+                    $logs = array_reverse(file($log_file));
+                    foreach (array_slice($logs, 0, 20) as $line) {
+                        echo "<div>" . htmlspecialchars($line) . "</div>";
+                    }
+                } else {
+                    echo "<div class='text-gray-600'>Nenhum log disponível...</div>";
+                }
+                ?>
+            </div>
+
+            <form method="POST" class="flex gap-2">
+                <input type="text" name="log_message" placeholder="Escreva um log manual..." 
+                    class="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 text-white">
+                <button type="submit" name="force_log" class="p-3 bg-blue-500 rounded-xl hover:bg-blue-600 transition-all active:scale-95">
+                    <i data-lucide="play" size="18"></i>
+                </button>
+            </form>
+        </div>
+    </section>
+
     <!-- Team Section -->
     <section class="space-y-4">
         <div class="flex justify-between items-center">

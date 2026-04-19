@@ -17,10 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (password_verify($pass, $admin['password'])) {
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_name'] = $admin['name'];
+            write_log("Utilizador logado: " . $admin['username'], "auth");
             header("Location: index.php");
             exit;
         }
     }
+    write_log("Falha de login para o utilizador: $user", "warning");
     $error = 'Utilizador ou senha incorretos.';
 }
 
