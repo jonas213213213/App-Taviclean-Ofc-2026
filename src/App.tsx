@@ -39,6 +39,7 @@ import {
   Minus,
   ChevronLeft
 } from 'lucide-react';
+import { api } from './services/api';
 
 // --- Helpers ---
 
@@ -211,12 +212,7 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const [team, setTeam] = useState<TeamMember[]>(() => {
-    const saved = localStorage.getItem('taviclean_team');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Ricardo Oliveira', role: 'Líder de Equipa', photo: 'https://picsum.photos/seed/ricardo/100/100', status: 'Ativo' }
-    ];
-  });
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [newMember, setNewMember] = useState({ name: '', role: '' });
   const [selectedJob, setSelectedJob] = useState<Appointment | null>(null);
@@ -227,41 +223,29 @@ export default function App() {
     jobs: '124',
     exp: '2 anos'
   });
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const saved = localStorage.getItem('taviclean_appointments');
-    return saved ? JSON.parse(saved) : MOCK_APPOINTMENTS;
-  });
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem('taviclean_customers');
-    if (saved) return JSON.parse(saved);
-    
-    // Extract unique customers from mock appointments if no saved customers
-    const unique = new Map();
-    MOCK_APPOINTMENTS.forEach(app => {
-      if (!unique.has(app.customerName)) {
-        unique.set(app.customerName, {
-          id: Math.random().toString(36).substr(2, 9),
-          name: app.customerName,
-          photo: app.customerPhoto || `https://picsum.photos/seed/${app.customerName}/100/100`,
-          contact: app.contact || '',
-          email: app.email || '',
-          address: app.address || '',
-          district: app.city || '',
-          municipality: app.address.split(',')[0] || ''
-        });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [appts, custs, tm, ntfs] = await Promise.all([
+          api.getAppointments(),
+          api.getCustomers(),
+          api.getTeam(),
+          api.getNotifications()
+        ]);
+        setAppointments(appts);
+        setCustomers(custs);
+        setTeam(tm);
+        setNotifications(ntfs);
+      } catch (error) {
+        console.error('Error fetching data:', error);
       }
-    });
-    return Array.from(unique.values());
-  });
-
-  useEffect(() => {
-    localStorage.setItem('taviclean_appointments', JSON.stringify(appointments));
-  }, [appointments]);
-
-  useEffect(() => {
-    localStorage.setItem('taviclean_team', JSON.stringify(team));
-  }, [team]);
+    };
+    fetchData();
+  }, []);
 
   const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
@@ -297,28 +281,29 @@ export default function App() {
     municipality: ''
   });
 
-  const handleCreateJob = () => {
+  const handleCreateJob = async () => {
+    let appointment: Appointment;
     if (editingJobId) {
-      setAppointments(prev => prev.map(app => 
-        app.id === editingJobId ? {
-          ...app,
-          date: newJob.date,
-          startTime: newJob.time,
-          customerName: newJob.name,
-          contact: newJob.contact,
-          email: newJob.email,
-          address: newJob.address,
-          city: newJob.district,
-          typology: newJob.typology,
-          serviceType: newJob.serviceType,
-          isSpecial: newJob.isSpecial,
-          comment: newJob.comment,
-          price: Number(newJob.price)
-        } : app
-      ));
+      const existing = appointments.find(a => a.id === editingJobId);
+      appointment = {
+        ...existing!,
+        date: newJob.date,
+        startTime: newJob.time,
+        customerName: newJob.name,
+        contact: newJob.contact,
+        email: newJob.email,
+        address: newJob.address,
+        city: newJob.district,
+        typology: newJob.typology,
+        serviceType: newJob.serviceType,
+        isSpecial: newJob.isSpecial,
+        comment: newJob.comment,
+        price: Number(newJob.price)
+      };
+      setAppointments(prev => prev.map(app => app.id === editingJobId ? appointment : app));
       setEditingJobId(null);
     } else {
-      const appointment: Appointment = {
+      appointment = {
         id: Date.now().toString(),
         date: newJob.date,
         startTime: newJob.time,
@@ -340,18 +325,19 @@ export default function App() {
       setAppointments([...appointments, appointment]);
     }
 
+    await api.saveAppointment(appointment);
+
     setIsAddJobOpen(false);
     
-    setNotifications([
-      {
-        id: Date.now().toString(),
-        title: editingJobId ? 'Agendamento Atualizado' : 'Agendamento Criado',
-        message: `O serviço para ${newJob.name} foi processado com sucesso.`,
-        time: 'Agora',
-        unread: true
-      },
-      ...notifications
-    ]);
+    const notification: Notification = {
+      id: Date.now().toString(),
+      title: editingJobId ? 'Agendamento Atualizado' : 'Agendamento Criado',
+      message: `O serviço para ${newJob.name} foi processado com sucesso.`,
+      time: 'Agora',
+      unread: true
+    };
+    setNotifications([notification, ...notifications]);
+    await api.saveNotification(notification);
 
     // Reset form
     setNewJob({
@@ -372,16 +358,15 @@ export default function App() {
     });
   };
 
-  const handleCreateCustomer = () => {
+  const handleCreateCustomer = async () => {
+    let customer: Customer;
     if (editingCustomerId) {
-      setCustomers(prev => prev.map(c => 
-        c.id === editingCustomerId 
-          ? { ...c, ...newCustomer } 
-          : c
-      ));
+      const existing = customers.find(c => c.id === editingCustomerId);
+      customer = { ...existing!, ...newCustomer };
+      setCustomers(prev => prev.map(c => c.id === editingCustomerId ? customer : c));
       setEditingCustomerId(null);
     } else {
-      const customer: Customer = {
+      customer = {
         id: Date.now().toString(),
         name: newCustomer.name,
         photo: `https://picsum.photos/seed/${newCustomer.name}/100/100`,
@@ -394,18 +379,19 @@ export default function App() {
       setCustomers([...customers, customer]);
     }
 
+    await api.saveCustomer(customer);
+
     setIsAddCustomerOpen(false);
     
-    setNotifications([
-      {
-        id: Date.now().toString(),
-        title: editingCustomerId ? 'Cliente Atualizado' : 'Cliente Registado',
-        message: `O cliente ${newCustomer.name} foi guardado com sucesso.`,
-        time: 'Agora',
-        unread: true
-      },
-      ...notifications
-    ]);
+    const notification: Notification = {
+      id: Date.now().toString(),
+      title: editingCustomerId ? 'Cliente Atualizado' : 'Cliente Registado',
+      message: `O cliente ${newCustomer.name} foi guardado com sucesso.`,
+      time: 'Agora',
+      unread: true
+    };
+    setNotifications([notification, ...notifications]);
+    await api.saveNotification(notification);
 
     setNewCustomer({
       name: '',
@@ -431,7 +417,7 @@ export default function App() {
     setIsAddCustomerOpen(true);
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (!newMember.name || !newMember.role) return;
     const member: TeamMember = {
       id: Date.now().toString(),
@@ -441,16 +427,19 @@ export default function App() {
       status: 'Ativo'
     };
     setTeam([...team, member]);
+    await api.saveTeamMember(member);
     setNewMember({ name: '', role: '' });
     setIsAddMemberOpen(false);
   };
 
-  const handleRemoveMember = (id: string) => {
+  const handleRemoveMember = async (id: string) => {
     setTeam(prev => prev.filter(m => m.id !== id));
+    await api.deleteTeamMember(id);
   };
 
-  const handleDeleteCustomer = (id: string) => {
+  const handleDeleteCustomer = async (id: string) => {
     setCustomers(prev => prev.filter(c => c.id !== id));
+    await api.deleteCustomer(id);
   };
 
   const handleSelectCustomer = (customerId: string) => {
@@ -495,66 +484,63 @@ export default function App() {
     setIsAddJobOpen(true);
   };
 
-  const handleCancelJob = (jobId: string) => {
+  const handleCancelJob = async (jobId: string) => {
     setAppointments(prev => prev.filter(app => app.id !== jobId));
-    setNotifications([
-      {
-        id: Date.now().toString(),
-        title: 'Agendamento Cancelado',
-        message: 'O serviço foi removido da sua lista.',
-        time: 'Agora',
-        unread: true
-      },
-      ...notifications
-    ]);
-  };
-  const [activeProfileSubView, setActiveProfileSubView] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Bem-vindo ao TaviClean!',
-      message: 'Olá Ricardo! Estamos felizes em ter você conosco. Comece a gerenciar seus serviços agora.',
+    await api.deleteAppointment(jobId);
+    
+    const notification: Notification = {
+      id: Date.now().toString(),
+      title: 'Agendamento Cancelado',
+      message: 'O serviço foi removido da sua lista.',
       time: 'Agora',
       unread: true
-    }
-  ]);
+    };
+    setNotifications([notification, ...notifications]);
+    await api.saveNotification(notification);
+  };
+  const [activeProfileSubView, setActiveProfileSubView] = useState<string | null>(null);
 
   const handleJobClick = (job: Appointment) => {
     setSelectedJob(job);
   };
 
-  const handleCompleteJob = (jobId: string) => {
-    setAppointments(prev => prev.map(app => 
-      app.id === jobId ? { ...app, status: 'Concluído' } : app
-    ));
+  const handleCompleteJob = async (jobId: string) => {
+    const existing = appointments.find(a => a.id === jobId);
+    if (!existing) return;
+
+    const updated = { ...existing, status: 'Concluído' as AppointmentStatus };
+    setAppointments(prev => prev.map(app => app.id === jobId ? updated : app));
+    await api.saveAppointment(updated);
     setSelectedJob(null);
     
-    setNotifications([
-      {
-        id: Date.now().toString(),
-        title: 'Trabalho Concluído',
-        message: 'O serviço foi finalizado com sucesso. Bom trabalho!',
-        time: 'Agora',
-        unread: true
-      },
-      ...notifications
-    ]);
+    const notification: Notification = {
+      id: Date.now().toString(),
+      title: 'Trabalho Concluído',
+      message: 'O serviço foi finalizado com sucesso. Bom trabalho!',
+      time: 'Agora',
+      unread: true
+    };
+    setNotifications([notification, ...notifications]);
+    await api.saveNotification(notification);
   };
 
-  const handleUpdateStatus = (jobId: string, status: AppointmentStatus) => {
-    setAppointments(prev => prev.map(app => 
-      app.id === jobId ? { ...app, status } : app
-    ));
-    setNotifications([
-      {
-        id: Date.now().toString(),
-        title: 'Status Atualizado',
-        message: `O status do serviço foi alterado para ${status}.`,
-        time: 'Agora',
-        unread: true
-      },
-      ...notifications
-    ]);
+  const handleUpdateStatus = async (jobId: string, status: AppointmentStatus) => {
+    const existing = appointments.find(a => a.id === jobId);
+    if (!existing) return;
+
+    const updated = { ...existing, status };
+    setAppointments(prev => prev.map(app => app.id === jobId ? updated : app));
+    await api.saveAppointment(updated);
+
+    const notification: Notification = {
+      id: Date.now().toString(),
+      title: 'Status Atualizado',
+      message: `O serviço foi marcado como ${status}.`,
+      time: 'Agora',
+      unread: true
+    };
+    setNotifications([notification, ...notifications]);
+    await api.saveNotification(notification);
   };
 
   const unreadCount = notifications.filter(n => n.unread).length;
